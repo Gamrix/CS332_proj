@@ -1,0 +1,20 @@
+# copy of two player pong game info
+https://github.com/DorianKodelja/DeepMind-Atari-Deep-Q-Learner-2Player/commit/fa030a463ca5274891c827c634525438eeb71d8c
+
+# Code for the Pong Env wrapper
+# - Need to modify this to support 2 player
+https://github.com/openai/atari-py/tree/master/atari_py
+        # Breadcrumbs
+        https://github.com/openai/gym/blob/master/gym/envs/atari/atari_env.py
+
+
+https://github.com/openai/gym/blob/master/examples/scripts/list_envs
+from gym import envs
+envids = [spec.id for spec in envs.registry.all()]
+for envid in sorted(envids):
+    print(envid)
+
+
+# Next Steps:
+Investigate how the rom is initiated, preumably the two player mode was not deactivated, and therefore can
+be easily activated through a minor source code change.
