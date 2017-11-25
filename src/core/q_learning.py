@@ -154,11 +154,9 @@ class QN(object):
         # TODO: Split this file up into two
 
         # initialize replay buffer and variables
-        replay_buffer = ReplayBuffer(self.config.buffer_size, self.config.state_history)
         rewards = deque(maxlen=self.config.num_episodes_test)
-        max_q_values = deque(maxlen=1000)
-        q_values = deque(maxlen=1000)
         self.init_averages()
+        self.train_init(exp_schedule, lr_schedule)
 
         t = last_eval = last_record = 0 # time control of nb of steps
         scores_eval = [] # list of scores computed at iteration time
@@ -175,38 +173,23 @@ class QN(object):
                 last_eval += 1
                 last_record += 1
                 if self.config.render_train: self.env.render()
-                # replay memory stuff
-                idx      = replay_buffer.store_frame(state)
-                q_input = replay_buffer.encode_recent_observation()
 
-                # chose action according to current Q and exploration
-                best_action, q_values = self.get_best_action(q_input)
-                action                = exp_schedule.get_action(best_action)
-
-                # store q values
-                max_q_values.append(max(q_values))
-                q_values += list(q_values)
-
+                action = self.train_step_pre(state, exp_schedule)
                 # perform action in env
                 new_state, reward, done, info = self.env.step(action)
-
-                # store the transition
-                replay_buffer.store_effect(idx, action, reward, done)
+                loss_eval, grad_eval = self.train_step_post(reward, done, t, lr_schedule, True)
                 state = new_state
-
-                # perform a training step
-                loss_eval, grad_eval = self.train_step(t, replay_buffer, lr_schedule.epsilon)
 
                 # logging stuff
                 if ((t > self.config.learning_start) and (t % self.config.log_freq == 0) and
                    (t % self.config.learning_freq == 0)):
-                    self.update_averages(rewards, max_q_values, q_values, scores_eval)
+                    # self.update_averages(rewards, scores_eval)
                     exp_schedule.update(t)
                     lr_schedule.update(t)
                     if len(rewards) > 0:
-                        prog.update(t + 1, exact=[("Loss", loss_eval), ("Avg R", self.avg_reward), 
+                        prog.update(t + 1, exact=[("Loss", loss_eval), ("Avg R", np.mean(rewards)),
                                         ("Max R", np.max(rewards)), ("eps", exp_schedule.epsilon), 
-                                        ("Grads", grad_eval), ("Max Q", self.max_q), 
+                                        ("Grads", grad_eval), ("Max Q", np.max(self.max_q_values)),
                                         ("lr", lr_schedule.epsilon)])
 
                 elif (t < self.config.learning_start) and (t % self.config.log_freq == 0):
@@ -238,6 +221,42 @@ class QN(object):
         self.save()
         scores_eval += [self.evaluate()]
         export_plot(scores_eval, "Scores", self.config.plot_output)
+
+    def train_init(self, exp_schedule, lr_schedule):
+        """
+        Performs training of Q
+
+        Args:
+            exp_schedule: Exploration instance s.t.
+                exp_schedule.get_action(best_action) returns an action
+            lr_schedule: Schedule for learning rate
+        """
+
+        # initialize replay buffer and variables
+        self.replay_buffer = ReplayBuffer(self.config.buffer_size, self.config.state_history)
+        self.max_q_values = deque(maxlen=1000)
+
+
+    def train_step_pre(self, state, exp_schedule):
+        self.idx      = self.replay_buffer.store_frame(state)
+        q_input = self.replay_buffer.encode_recent_observation()
+
+        # chose action according to current Q and exploration
+        best_action, q_values = self.get_best_action(q_input)
+        self.action           = exp_schedule.get_action(best_action)
+
+        # store q values
+        self.max_q_values.append(max(q_values))
+        return self.action
+
+
+    def train_step_post(self, reward, done, t, lr_schedule, train_model):
+        self.replay_buffer.store_effect(self.idx, self.action, reward, done)
+
+        # perform a training step
+        if not train_model:
+            return 0, 0
+        return self.train_step(t, self.replay_buffer, lr_schedule.epsilon)
 
 
     def train_step(self, t, replay_buffer, lr):

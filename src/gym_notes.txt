@@ -1,6 +1,11 @@
 # copy of two player pong game info
 https://github.com/DorianKodelja/DeepMind-Atari-Deep-Q-Learner-2Player/commit/fa030a463ca5274891c827c634525438eeb71d8c
 
+
+    # add two player pong
+    https://github.com/tambetm/xitari/commit/78206392d3485115e3d46feb01dae1d279f07b35
+    # implement two player mode
+
 # Code for the Pong Env wrapper
 # - Need to modify this to support 2 player
 https://github.com/openai/atari-py/tree/master/atari_py
