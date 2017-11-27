@@ -4,7 +4,6 @@ import numpy as np
 import logging
 import time
 import sys
-from gym import wrappers
 from collections import deque
 
 from utils.general import get_logger, Progbar, export_plot
@@ -13,11 +12,12 @@ from utils.preprocess import greyscale
 from utils.wrappers import PreproWrapper, MaxAndSkipEnv
 
 
+
 class QN(object):
     """
     Abstract Class for implementing a Q Network
     """
-    def __init__(self, env, config, logger=None):
+    def __init__(self, env, config, logger=None, name=None):
         """
         Initialize Q Network and env
 
@@ -26,10 +26,22 @@ class QN(object):
             logger: logger instance from logging module
         """
         # directory for training outputs
+        if name == None:
+            raise Exception("Must supply network name")
+        name =  time.strftime("_%m%d_%H%M") + "/" + name
+
+        config.output_path = config.output_path.format(name)
+        config.model_output = config.model_output.format(name)
+        config.log_path = config.log_path.format(name)
+        config.plot_output = config.plot_output.format(name)
+        config.record_path = config.record_path.format(name)
+
         if not os.path.exists(config.output_path):
             os.makedirs(config.output_path)
             
         # store hyper params
+        # Customise the config
+
         self.config = config
         self.logger = logger
         if logger is None:
@@ -151,8 +163,6 @@ class QN(object):
             lr_schedule: Schedule for learning rate
         """
 
-        # TODO: Split this file up into two
-
         # initialize replay buffer and variables
         rewards = deque(maxlen=self.config.num_episodes_test)
         self.init_averages()
@@ -177,13 +187,14 @@ class QN(object):
                 action = self.train_step_pre(state, exp_schedule)
                 # perform action in env
                 new_state, reward, done, info = self.env.step(action)
-                loss_eval, grad_eval = self.train_step_post(reward, done, t, lr_schedule, True)
+                self.replay_buffer.store_effect(self.idx, self.action, reward, done)
+                loss_eval, grad_eval = self.train_step(t, self.replay_buffer, lr_schedule.epsilon)
                 state = new_state
 
                 # logging stuff
                 if ((t > self.config.learning_start) and (t % self.config.log_freq == 0) and
                    (t % self.config.learning_freq == 0)):
-                    # self.update_averages(rewards, scores_eval)
+                    self.update_averages(rewards,self.max_q_values, self.q_values, scores_eval)
                     exp_schedule.update(t)
                     lr_schedule.update(t)
                     if len(rewards) > 0:
@@ -222,7 +233,7 @@ class QN(object):
         scores_eval += [self.evaluate()]
         export_plot(scores_eval, "Scores", self.config.plot_output)
 
-    def train_init(self, exp_schedule, lr_schedule):
+    def train_init(self):
         """
         Performs training of Q
 
@@ -247,12 +258,15 @@ class QN(object):
 
         # store q values
         self.max_q_values.append(max(q_values))
+        self.q_values = list(q_values)
         return self.action
 
 
     def train_step_post(self, reward, done, t, lr_schedule, train_model):
         self.replay_buffer.store_effect(self.idx, self.action, reward, done)
-
+        if ((t > self.config.learning_start) and (t % self.config.log_freq == 0) and
+                (t % self.config.learning_freq == 0)):
+            self.update_averages(self.rewards ,self.max_q_values, self.q_values, [0])
         # perform a training step
         if not train_model:
             return 0, 0

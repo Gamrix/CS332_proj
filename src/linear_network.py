@@ -4,10 +4,8 @@ import tensorflow.contrib.layers as layers
 
 from utils.general import get_logger
 from utils.test_env import EnvTest
-from core.deep_q_learning import DQN
-from q1_schedule import LinearExploration, LinearSchedule
-
-from configs.q2_linear import config
+from networks.deep_q_learning import DQN
+from train_schedule import LinearExploration, LinearSchedule
 
 
 class Linear(DQN):
@@ -59,7 +57,7 @@ class Linear(DQN):
         """
         ##############################################################
         ################YOUR CODE HERE (6-15 lines) ##################
-        input_shape = (None, state_shape[0], state_shape[1], state_shape[2] * config.state_history)
+        input_shape = (None, state_shape[0], state_shape[1], state_shape[2] * self.config.state_history)
         self.state_shape = input_shape
         self.s = tf.placeholder(tf.uint8, input_shape)
         self.sp = tf.placeholder(tf.uint8, input_shape)
@@ -269,6 +267,7 @@ class Linear(DQN):
 
 
 if __name__ == '__main__':
+    from configs.q2_linear import config
     env = EnvTest((5, 5, 1))
 
     # exploration strategy

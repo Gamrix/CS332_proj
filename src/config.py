@@ -8,7 +8,7 @@ class config():
     high             = 255.
 
     # output config
-    output_path  = "results/q6_bonus_question/"
+    output_path  = "results/{}/"
     model_output = output_path + "model.weights/"
     log_path     = output_path + "log.txt"
     plot_output  = output_path + "scores.png"
@@ -25,7 +25,7 @@ class config():
     soft_epsilon      = 0.05
 
     # nature paper hyper params
-    nsteps_train       = 10000000
+    nsteps_train       = 5000000
     batch_size         = 32
     buffer_size        = 1000000
     target_update_freq = 10000

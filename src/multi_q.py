@@ -1,15 +1,16 @@
-import gym
 import sys
-import numpy as np
+import os
 from collections import deque
 
-from utils.general import get_logger, Progbar, export_plot
+import numpy as np
+
+import time
+import gym
+from networks import dqns
 from train_schedule import LinearExploration, LinearSchedule
+from utils.general import get_logger, Progbar, export_plot
 from utils.preprocess import greyscale
 from utils.wrappers import PreproWrapper, MaxAndSkipEnv
-
-import config
-import dqns
 
 
 class SelfPlayTrainer(object):
@@ -18,10 +19,25 @@ class SelfPlayTrainer(object):
         self.model_1 = model_1
         self.env = env
         self.config = config
+        name =  time.strftime("_%m%d_%H%M")
 
-        self.logger = get_logger(config.log_path)
+        config.output_path = config.output_path.format(name)
+        config.model_output = config.model_output.format(name)
+        config.log_path = config.log_path.format(name)
+        config.plot_output = config.plot_output.format(name)
+        config.record_path = config.record_path.format(name)
+
+        if not os.path.exists(config.output_path):
+            os.makedirs(config.output_path)
+
+        self.logger = get_logger(config.log_path.format(time.strftime("_%m%d_%H%M")))
+
+    def initialize(self):
+        self.model_0.initialize()
+        self.model_1.initialize()
 
     def record(self):
+        self.logger.info("Recording training episode")
         env = gym.make(self.config.env_name)
         env = gym.wrappers.Monitor(env, self.config.record_path, video_callable=lambda x: True, resume=True)
         env = MaxAndSkipEnv(env, skip=self.config.skip_frame)
@@ -33,12 +49,12 @@ class SelfPlayTrainer(object):
         self.model_0.initialize()
         self.model_1.initialize()
 
-        if config.record():
+        if True:
             self.record()  # record one at beginning
 
         self.train(exp_schedule, lr_schedule, train_0, train_1)
 
-        if self.config.record:
+        if True:
             self.record()  # record one at end
 
     def evaluate(self, env=None, num_episodes=None):
@@ -71,7 +87,7 @@ class SelfPlayTrainer(object):
                 action_1 = self.model_1.train_step_pre(state[:, ::-1], exp_schedule)
 
                 # perform action in env
-                new_state, reward, done, info = self.env.step((action_0, action_1))
+                new_state, reward, done, info =env.step((action_0, action_1))
 
                 self.model_0.train_step_post(reward, done, 0, lr_schedule, False)
                 self.model_1.train_step_post(-reward, done, 0, lr_schedule, False)
@@ -109,6 +125,9 @@ class SelfPlayTrainer(object):
 
         # initialize replay buffer and variables
         rewards = deque(maxlen=self.config.num_episodes_test)
+        rewardsB = deque(maxlen=self.config.num_episodes_test)
+        self.model_0.rewards = rewards
+        self.model_1.rewards = rewardsB
         # self.init_averages()
 
         t = last_eval = last_record = 0 # time control of nb of steps
@@ -167,6 +186,7 @@ class SelfPlayTrainer(object):
 
             # updates to perform at the end of an episode
             rewards.append(total_reward)
+            rewardsB.append(-total_reward)
 
             if (t > self.config.learning_start) and (last_eval > self.config.eval_freq):
                 # evaluate our policy
@@ -187,25 +207,28 @@ class SelfPlayTrainer(object):
         export_plot(scores_eval, "Scores", self.config.plot_output)
 
 if __name__ == '__main__':
+    import config
     # make env
-    env = gym.make(config.env_name)
-    env = MaxAndSkipEnv(env, skip=config.skip_frame)
+    g_config = config.config()
+    g_config.env_name = "Pong2p-v0"
+    env = gym.make(g_config.env_name)
+    env = MaxAndSkipEnv(env, skip=g_config.skip_frame)
     env = PreproWrapper(env, prepro=greyscale, shape=(80, 80, 1),
-                        overwrite_render=config.overwrite_render)
+                        overwrite_render=g_config.overwrite_render)
 
     # exploration strategy
     # you may want to modify this schedule
-    exp_schedule = LinearExploration(env, config.eps_begin,
-                                     config.eps_end, config.eps_nsteps)
+    exp_schedule = LinearExploration(env, g_config.eps_begin,
+                                     g_config.eps_end, g_config.eps_nsteps)
 
     # you may want to modify this schedule
     # learning rate schedule
-    lr_schedule  = LinearSchedule(config.lr_begin, config.lr_end,
-                                  config.lr_nsteps)
+    lr_schedule  = LinearSchedule(g_config.lr_begin, g_config.lr_end,
+                                  g_config.lr_nsteps)
 
     # train model
-    model_0 = dqns.AdvantageQN(env, config)
-    model_1 = dqns.AdvantageQN(env, config)
-    trainer = SelfPlayTrainer(model_0, model_1, env, config)
-    trainer.train(exp_schedule, lr_schedule, train_0=True, train_1=True)
+    model_0 = dqns.AdvantageQN(env, config.config(), name="Adv_A")
+    model_1 = dqns.AdvantageQN(env, config.config(), name="Adv_B")
+    trainer = SelfPlayTrainer(model_0, model_1, env, g_config)
+    trainer.run_parallel_models(exp_schedule, lr_schedule, True, True)
 
