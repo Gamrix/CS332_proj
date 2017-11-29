@@ -11,6 +11,7 @@ from train_schedule import LinearExploration, LinearSchedule
 from linear_network import Linear
 
 
+
 class AdvantageQN(Linear):
     """
     Going beyond - implement your own Deep Q Network to find the perfect
@@ -47,7 +48,6 @@ class AdvantageQN(Linear):
         """
         # this information might be useful
         with self.tf_graph.as_default():
-            num_actions = self.env.action_space.n
             out = state
             with tf.variable_scope(scope, reuse):
                 hid1 = layers.conv2d(state, num_outputs=32, kernel_size=8, stride=4, padding="SAME", scope="c1")
@@ -56,7 +56,7 @@ class AdvantageQN(Linear):
                 hid3_flat = layers.flatten(hid3)
 
                 fc_advantage = layers.fully_connected(hid3_flat, num_outputs=256, scope="FC1")
-                advantage = layers.fully_connected(fc_advantage, num_actions, scope="FC2", activation_fn=None)
+                advantage = layers.fully_connected(fc_advantage, self.action_space, scope="FC2", activation_fn=None)
 
                 fc_value = layers.fully_connected(hid3_flat, num_outputs=64, scope="FC_V1")
                 value = layers.fully_connected(fc_value, num_outputs=1, scope="FC_V2", activation_fn=None)

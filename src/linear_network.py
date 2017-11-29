@@ -84,7 +84,7 @@ class Linear(DQN):
             out: (tf tensor) of shape = (batch_size, num_actions)
         """
         # this information might be useful
-        num_actions = self.env.action_space.n
+
         out = state
 
         ##############################################################
@@ -178,8 +178,6 @@ class Linear(DQN):
             target_q: (tf tensor) shape = (batch_size, num_actions)
         """
         # you may need this variable
-        num_actions = self.env.action_space.n
-
         ##############################################################
         """
         TODO: The loss for an example is defined as:
@@ -207,7 +205,7 @@ class Linear(DQN):
         q_samp = self.r + (1 - done_float) * self.config.gamma * tf.reduce_max(target_q, axis=1)
 
         # diff = (tf.reshape(q_samp, (-1,1)) - q) * tf.one_hot(self.a, depth=num_actions)   # maybe this is wrong
-        diff = q_samp - tf.reduce_sum(q * tf.one_hot(self.a, depth=num_actions), axis=1)
+        diff = q_samp - tf.reduce_sum(q * tf.one_hot(self.a, depth=self.action_space), axis=1)
         self.loss = tf.reduce_sum(diff * diff)
         # self.loss = tf.Print(self.loss,[self.loss], name="Loss_calc", summarize=20)
         # for elem in [ diff, q_samp, q, target_q, self.r, self.a]:

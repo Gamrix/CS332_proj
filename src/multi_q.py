@@ -11,6 +11,7 @@ from train_schedule import LinearExploration, LinearSchedule
 from utils.general import get_logger, Progbar, export_plot
 from utils.preprocess import greyscale
 from utils.wrappers import PreproWrapper, MaxAndSkipEnv
+from  utils import actions
 
 
 class SelfPlayTrainer(object):
@@ -85,18 +86,26 @@ class SelfPlayTrainer(object):
 
                 action_0 = self.model_0.train_step_pre(state, exp_schedule)
                 action_1 = self.model_1.train_step_pre(state[:, ::-1], exp_schedule)
+                cur_action = actions.action_number(action_0, action_1)
 
                 # perform action in env
-                new_state, reward, done, info =env.step((action_0, action_1))
+                new_state, reward, done, info =env.step(cur_action)
 
+                total_reward += reward
+
+                # need to start another game
                 self.model_0.train_step_post(reward, done, 0, lr_schedule, False)
                 self.model_1.train_step_post(-reward, done, 0, lr_schedule, False)
 
+                if reward !=0:
+                    for i in range(10):  # to make sure that this will only not happen 1 / 1000000 times
+                        new_state, reward, done, info =env.step(actions.FIRE)  # launch a new ball
                 # store last state in buffer
                 state = new_state
 
                 # count reward
-                total_reward += reward
+
+
                 if done:
                     break
 

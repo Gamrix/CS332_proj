@@ -57,7 +57,7 @@ class LinearExploration(LinearSchedule):
         super(LinearExploration, self).__init__(eps_begin, eps_end, nsteps)
 
 
-    def get_action(self, best_action):
+    def get_action(self, best_action, actions):
         """
         Returns a random action with prob epsilon, otherwise return the best_action
 
@@ -78,7 +78,7 @@ class LinearExploration(LinearSchedule):
         ################ YOUR CODE HERE - 4-5 lines ##################
         import random
         if random.random() < self.epsilon:
-            action = self.env.action_space.sample()
+            action = random.randrange(actions)
             return action
         else:
             return best_action

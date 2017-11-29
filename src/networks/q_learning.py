@@ -10,7 +10,7 @@ from utils.general import get_logger, Progbar, export_plot
 from utils.replay_buffer import ReplayBuffer
 from utils.preprocess import greyscale
 from utils.wrappers import PreproWrapper, MaxAndSkipEnv
-
+import random
 
 
 class QN(object):
@@ -26,6 +26,7 @@ class QN(object):
             logger: logger instance from logging module
         """
         # directory for training outputs
+        self.action_space = 3
         if name == None:
             raise Exception("Must supply network name")
         name =  time.strftime("_%m%d_%H%M") + "/" + name
@@ -104,7 +105,7 @@ class QN(object):
             state: observation from gym
         """
         if np.random.random() < self.config.soft_epsilon:
-            return self.env.action_space.sample()
+            return random
         else:
             return self.get_best_action(state)[0]
 
@@ -254,7 +255,7 @@ class QN(object):
 
         # chose action according to current Q and exploration
         best_action, q_values = self.get_best_action(q_input)
-        self.action           = exp_schedule.get_action(best_action)
+        self.action           = exp_schedule.get_action(best_action, self.action_space)
 
         # store q values
         self.max_q_values.append(max(q_values))

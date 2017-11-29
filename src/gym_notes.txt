@@ -23,3 +23,7 @@ for envid in sorted(envids):
 # Next Steps:
 Investigate how the rom is initiated, preumably the two player mode was not deactivated, and therefore can
 be easily activated through a minor source code change.
+
+# Rendering the game for human play
+# https://danieltakeshi.github.io/2016/11/25/frame-skipping-and-preprocessing-for-deep-q-networks-on-atari-2600-games/
+I saved the screenshots each time I executed an action using the ALE Python interface. Specifically, I started with ale = ALEInterface() and then after each call to ale.act(action), I used rgb_image = ale.getScreenRGB(). Thus, the above image of 30 frames corresponds to all of the screenshots that I “saw” while playing in the span of a half-second
