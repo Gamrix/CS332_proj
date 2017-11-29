@@ -249,13 +249,16 @@ class QN(object):
         self.max_q_values = deque(maxlen=1000)
 
 
-    def train_step_pre(self, state, exp_schedule):
+    def train_step_pre(self, state, exp_schedule=None):
         self.idx      = self.replay_buffer.store_frame(state)
         q_input = self.replay_buffer.encode_recent_observation()
 
         # chose action according to current Q and exploration
         best_action, q_values = self.get_best_action(q_input)
-        self.action           = exp_schedule.get_action(best_action, self.action_space)
+        if exp_schedule is None:
+            self.action = best_action
+        else:
+            self.action           = exp_schedule.get_action(best_action, self.action_space)
 
         # store q values
         self.max_q_values.append(max(q_values))

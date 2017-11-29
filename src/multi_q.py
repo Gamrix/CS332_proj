@@ -57,6 +57,23 @@ class SelfPlayTrainer(object):
 
         if True:
             self.record()  # record one at end
+    
+    def get_new_ball(self, env):
+        while True:
+            # we need to account for stochasticity of the env, 
+            # and we need to account for pong not letting the user 
+            # immediately launch the ball again
+            new_state, reward, done, info = env.step(actions.FIRE)  # launch a new ball
+            if done:
+                return None 
+            center = new_state[60:190, 20:140]
+            # print("call new state")
+            #print(new_state.shape)
+            if center.max() > 200:
+                # The ball is now back in the field
+                return new_state
+            
+            
 
     def evaluate(self, env=None, num_episodes=None):
         """
@@ -84,9 +101,9 @@ class SelfPlayTrainer(object):
             while True:
                 if self.config.render_test: env.render()
 
-                action_0 = self.model_0.train_step_pre(state, exp_schedule)
-                action_1 = self.model_1.train_step_pre(state[:, ::-1], exp_schedule)
-                cur_action = actions.action_number(action_0, action_1)
+                action_0 = self.model_0.train_step_pre(state)
+                action_1 = self.model_1.train_step_pre(state[:, ::-1])
+                cur_action = actions.trans(action_0, action_1)
 
                 # perform action in env
                 new_state, reward, done, info =env.step(cur_action)
@@ -94,20 +111,20 @@ class SelfPlayTrainer(object):
                 total_reward += reward
 
                 # need to start another game
-                self.model_0.train_step_post(reward, done, 0, lr_schedule, False)
-                self.model_1.train_step_post(-reward, done, 0, lr_schedule, False)
-
-                if reward !=0:
-                    for i in range(10):  # to make sure that this will only not happen 1 / 1000000 times
-                        new_state, reward, done, info =env.step(actions.FIRE)  # launch a new ball
-                # store last state in buffer
-                state = new_state
-
-                # count reward
-
+                self.model_0.train_step_post(reward, done, 0, None, False)
+                self.model_1.train_step_post(-reward, done, 0, None, False)
 
                 if done:
                     break
+
+                if reward !=0:
+                    print("getting new ball", done, total_reward)
+                    state = self.get_new_ball(env)
+                    if state is None:
+                        break # alternative done state
+                # store last state in buffer
+                state = new_state
+
 
             # updates to perform at the end of an episode
             rewards.append(total_reward)
@@ -122,7 +139,7 @@ class SelfPlayTrainer(object):
         return avg_reward
 
 
-    def train(self, exp_schedule, lr_schedule, train_0, train_1):
+    def train(self, exp_schedule, lr_schedule, train_0, train_1, env=None):
         """
         Performs training of Q
 
@@ -131,6 +148,8 @@ class SelfPlayTrainer(object):
                 exp_schedule.get_action(best_action) returns an action
             lr_schedule: Schedule for learning rate
         """
+        if env is None:
+            env = self.env
 
         # initialize replay buffer and variables
         rewards = deque(maxlen=self.config.num_episodes_test)
@@ -159,9 +178,10 @@ class SelfPlayTrainer(object):
 
                 action_0 = self.model_0.train_step_pre(state, exp_schedule)
                 action_1 = self.model_1.train_step_pre(state[:, ::-1], exp_schedule)
+                cur_action = actions.trans(action_0, action_1)
 
                 # perform action in env
-                new_state, reward, done, info = self.env.step((action_0, action_1))
+                new_state, reward, done, info =env.step(cur_action)
 
                 loss_e0, grad_e0 = self.model_0.train_step_post(reward, done, t, lr_schedule, train_0)
                 self.model_1.train_step_post(-reward, done, t, lr_schedule, train_1)
@@ -193,6 +213,11 @@ class SelfPlayTrainer(object):
                 if done or t >= self.config.nsteps_train:
                     break
 
+                if reward !=0:
+                    state = self.get_new_ball(env)
+                    if state is None:
+                        break # alternative done state
+
             # updates to perform at the end of an episode
             rewards.append(total_reward)
             rewardsB.append(-total_reward)
@@ -215,7 +240,8 @@ class SelfPlayTrainer(object):
         scores_eval += [self.evaluate()]
         export_plot(scores_eval, "Scores", self.config.plot_output)
 
-if __name__ == '__main__':
+
+def main():
     import config
     # make env
     g_config = config.config()
@@ -241,3 +267,6 @@ if __name__ == '__main__':
     trainer = SelfPlayTrainer(model_0, model_1, env, g_config)
     trainer.run_parallel_models(exp_schedule, lr_schedule, True, True)
 
+
+if __name__ == '__main__':
+    main()

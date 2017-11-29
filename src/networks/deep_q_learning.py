@@ -114,7 +114,13 @@ class DQN(QN):
         """
         # create tf session
         with self.tf_graph.as_default():
-            self.sess = tf.Session()
+            
+            # limit GPU memory usage.
+            config = tf.ConfigProto()
+            # config.gpu_options.allow_growth = True
+            config.gpu_options.per_process_gpu_memory_fraction = 0.15
+            
+            self.sess = tf.Session(config=config)
 
             # tensorboard stuff
             self.add_summary()

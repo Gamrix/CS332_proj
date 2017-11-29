@@ -1,3 +1,4 @@
+"""
 atari_actions = [
     "PLAYER_A_NOOP"
     ,"PLAYER_A_FIRE"
@@ -23,7 +24,6 @@ b_actions = [
     "RIGHT"
 ]
 
-FIRE = 1
 
 def action_number(action_a, action_b):
     a = a_actions[action_a]
@@ -31,4 +31,18 @@ def action_number(action_a, action_b):
     for i, action in enumerate(atari_actions):
         if a in action and b in action:
             return i
+"""
+
+
+FIRE = 1
+B_OFFSET = 20
+
+def trans(act_a, act_b):
+    # B's actions are offset by 20 (ALE Config)
+    return trans_single(act_a), trans_single(act_b) + 20
+
+def trans_single(raw_action):
+    if raw_action == 0:
+        return 0
+    return raw_action + 1
 
