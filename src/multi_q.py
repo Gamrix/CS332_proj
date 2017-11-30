@@ -118,7 +118,6 @@ class SelfPlayTrainer(object):
                     break
 
                 if reward !=0:
-                    print("getting new ball", done, total_reward)
                     state = self.get_new_ball(env)
                     if state is None:
                         break # alternative done state
