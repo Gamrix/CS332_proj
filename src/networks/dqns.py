@@ -8,7 +8,7 @@ import tensorflow.contrib.layers as layers
 from utils.general import get_logger
 from utils.test_env import EnvTest
 from train_schedule import LinearExploration, LinearSchedule
-from linear_network import Linear
+from networks.linear_network import Linear
 
 
 
@@ -72,21 +72,23 @@ Feel free to change the configuration. If so, please report your hyperparameters
 """
 if __name__ == '__main__':
     import config
+    g_config = config.config()
+
     # make env
-    env = gym.make(config.env_name)
-    env = MaxAndSkipEnv(env, skip=config.skip_frame)
+    env = gym.make("Pong-v0")
+    env = MaxAndSkipEnv(env, skip=g_config.skip_frame)
     env = PreproWrapper(env, prepro=greyscale, shape=(80, 80, 1), 
-                        overwrite_render=config.overwrite_render)
+                        overwrite_render=g_config.overwrite_render)
 
     # exploration strategy
     # you may want to modify this schedule
-    exp_schedule = LinearExploration(env, config.eps_begin, 
-            config.eps_end, config.eps_nsteps)
+    exp_schedule = LinearExploration(env, g_config.eps_begin, 
+            g_config.eps_end, g_config.eps_nsteps)
 
     # you may want to modify this schedule
     # learning rate schedule
-    lr_schedule  = LinearSchedule(config.lr_begin, config.lr_end,
-            config.lr_nsteps)
+    lr_schedule  = LinearSchedule(g_config.lr_begin, g_config.lr_end,
+            g_config.lr_nsteps)
 
     # train model
     model = AdvantageQN(env, config)

@@ -84,70 +84,6 @@ class SelfPlayTrainer(object):
                 return new_state
             
             
-
-    def evaluate(self, env=None, num_episodes=None, exp_value=0):
-        """
-        Evaluation with same procedure as the training
-        """
-        # log our activity only if default call
-        if num_episodes is None:
-            self.logger.info("Evaluating...")
-
-        # arguments defaults
-        if num_episodes is None:
-            num_episodes = self.config.num_episodes_test
-
-        if env is None:
-            env = self.env
-
-        # replay memory to play
-        rewards = []
-        self.model_0.train_init()
-        self.model_1.train_init()
-
-        for i in range(num_episodes):
-            total_reward = 0
-            state = env.reset()
-            while True:
-                if self.config.render_test: env.render()
-
-                action_0 = self.model_0.train_step_pre(state)
-                action_1 = self.model_1.train_step_pre(state[:, ::-1])
-                cur_action = actions.trans(action_0, action_1)
-
-                # perform action in env
-                new_state, reward, done, info =env.step(cur_action)
-
-                total_reward += reward
-
-                # need to start another game
-                self.model_0.train_step_post(reward, done, 0, None, False)
-                self.model_1.train_step_post(-reward, done, 0, None, False)
-
-                if done:
-                    break
-
-                if reward !=0:
-                    state = self.get_new_ball(env)
-                    if state is None:
-                        break # alternative done state
-                # store last state in buffer
-                state = new_state
-
-
-            # updates to perform at the end of an episode
-            rewards.append(total_reward)
-
-        avg_reward = np.mean(rewards)
-        sigma_reward = np.sqrt(np.var(rewards) / len(rewards))
-
-        if num_episodes > 1:
-            msg = "Average reward: {:04.2f} +/- {:04.2f}".format(avg_reward, sigma_reward)
-            self.logger.info(msg)
-
-        return avg_reward
-
-
     def train(self, exp_schedule, lr_schedule, train_0, train_1, env=None):
         """
         Performs training of Q
@@ -183,7 +119,7 @@ class SelfPlayTrainer(object):
                 t += 1
                 last_eval += 1
                 last_record += 1
-                if self.config.render_train: self.env.render()
+                if self.config.render_train: env.render()
 
                 action_0 = self.model_0.train_step_pre(state, exp_schedule)
                 action_1 = self.model_1.train_step_pre(state[:, ::-1], exp_schedule)
@@ -255,6 +191,68 @@ class SelfPlayTrainer(object):
         self.model_1.save() # save the models
         scores_eval += [self.evaluate()]
         export_plot(scores_eval, "Scores", self.config.plot_output)
+
+    def evaluate(self, env=None, num_episodes=None, exp_value=0):
+        """
+        Evaluation with same procedure as the training
+        """
+        # log our activity only if default call
+        if num_episodes is None:
+            self.logger.info("Evaluating...")
+
+        # arguments defaults
+        if num_episodes is None:
+            num_episodes = self.config.num_episodes_test
+
+        if env is None:
+            env = self.env
+
+        # replay memory to play
+        rewards = []
+        self.model_0.train_init()
+        self.model_1.train_init()
+
+        for i in range(num_episodes):
+            total_reward = 0
+            state = env.reset()
+            while True:
+                if self.config.render_test: env.render()
+
+                action_0 = self.model_0.train_step_pre(state)
+                action_1 = self.model_1.train_step_pre(state[:, ::-1])
+                cur_action = actions.trans(action_0, action_1)
+
+                # perform action in env
+                new_state, reward, done, info =env.step(cur_action)
+
+                total_reward += reward
+
+                # need to start another game
+                self.model_0.train_step_post(reward, done, 0, None, False)
+                self.model_1.train_step_post(-reward, done, 0, None, False)
+
+                if done:
+                    break
+
+                if reward !=0:
+                    state = self.get_new_ball(env)
+                    if state is None:
+                        break # alternative done state
+                # store last state in buffer
+                state = new_state
+
+
+            # updates to perform at the end of an episode
+            rewards.append(total_reward)
+
+        avg_reward = np.mean(rewards)
+        sigma_reward = np.sqrt(np.var(rewards) / len(rewards))
+
+        if num_episodes > 1:
+            msg = "Average reward: {:04.2f} +/- {:04.2f}".format(avg_reward, sigma_reward)
+            self.logger.info(msg)
+
+        return avg_reward
 
 
 def main():

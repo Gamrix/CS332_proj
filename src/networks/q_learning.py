@@ -10,6 +10,8 @@ from utils.general import get_logger, Progbar, export_plot
 from utils.replay_buffer import ReplayBuffer
 from utils.preprocess import greyscale
 from utils.wrappers import PreproWrapper, MaxAndSkipEnv
+from utils import actions
+
 import random
 
 
@@ -154,7 +156,7 @@ class QN(object):
             self.eval_reward = scores_eval[-1]
 
 
-    def train(self, exp_schedule, lr_schedule):
+    def train(self, exp_schedule, lr_schedule, env=None):
         """
         Performs training of Q
 
@@ -163,11 +165,12 @@ class QN(object):
                 exp_schedule.get_action(best_action) returns an action
             lr_schedule: Schedule for learning rate
         """
-
+        if env is None:
+            env = self.env
         # initialize replay buffer and variables
         rewards = deque(maxlen=self.config.num_episodes_test)
         self.init_averages()
-        self.train_init(exp_schedule, lr_schedule)
+        self.train_init()
 
         t = last_eval = last_record = 0 # time control of nb of steps
         scores_eval = [] # list of scores computed at iteration time
@@ -184,13 +187,14 @@ class QN(object):
                 last_eval += 1
                 last_record += 1
                 
-                if self.config.render_train: self.env.render()
+                if self.config.render_train: env.render()
 
                 action = self.train_step_pre(state, exp_schedule)
+                cur_action = actions.trans_single(action)
                 # perform action in env
-                new_state, reward, done, info = self.env.step(action)
-                self.replay_buffer.store_effect(self.idx, self.action, reward, done)
-                loss_eval, grad_eval = self.train_step(t, self.replay_buffer, lr_schedule.epsilon)
+                new_state, reward, done, info = env.step(cur_action)
+                self.rewards = reward
+                loss_eval, grad_eval = self.train_step_post(reward, done, t, lr_schedule, True)
                 state = new_state
 
                 # logging stuff
@@ -228,6 +232,7 @@ class QN(object):
                 self.logger.info("Recording...")
                 last_record =0
                 self.record()
+                self.save(t)
 
         # last words
         self.logger.info("- Training done.")
@@ -320,8 +325,8 @@ class QN(object):
             env = self.env
 
         # replay memory to play
-        replay_buffer = ReplayBuffer(self.config.buffer_size, self.config.state_history)
         rewards = []
+        self.train_init()
 
         for i in range(num_episodes):
             total_reward = 0
@@ -329,24 +334,19 @@ class QN(object):
             while True:
                 if self.config.render_test: env.render()
 
-                # store last state in buffer
-                idx     = replay_buffer.store_frame(state)
-                q_input = replay_buffer.encode_recent_observation()
-
-                action = self.get_action(q_input)
-
+                action = self.train_step_pre(state)
+                cur_action = actions.trans_single(action)
                 # perform action in env
-                new_state, reward, done, info = env.step(action)
+                new_state, reward, done, info = env.step(cur_action)
+                self.train_step_post(reward, done, 0, None, False)
 
-                # store in replay memory
-                replay_buffer.store_effect(idx, action, reward, done)
-                state = new_state
 
                 # count reward
                 total_reward += reward
                 if done:
                     break
 
+                state = new_state
             # updates to perform at the end of an episode
             rewards.append(total_reward)     
 
