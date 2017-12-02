@@ -74,17 +74,19 @@ def single():
     model.run(exp_schedule, lr_schedule)
 
 def prof_multi():
-    cProfile.run("multi()", "multi_stats")
+    name = "profile_multi.profile"
+    cProfile.run("multi()", name)
     import pstats
 
-    p = pstats.Stats('multi_stats')
+    p = pstats.Stats(name)
     p.sort_stats("cumulative").print_stats()
 
 def prof_single():
-    cProfile.run("single()", "single_stats")
+    name = "profile_single.profile"
+    cProfile.run("single()", name)
     import pstats
 
-    p = pstats.Stats('single_stats')
+    p = pstats.Stats(name)
     p.sort_stats("cumulative").print_stats()
 
 if __name__ == '__main__':
