@@ -5,7 +5,6 @@ import tensorflow.contrib.layers as layers
 from utils.general import get_logger
 from utils.test_env import EnvTest
 from networks.deep_q_learning import DQN
-from train_schedule import LinearExploration, LinearSchedule
 
 
 class Linear(DQN):
@@ -266,6 +265,7 @@ class Linear(DQN):
 
 if __name__ == '__main__':
     from configs.q2_linear import config
+    from train_schedule import LinearExploration, LinearSchedule
     env = EnvTest((5, 5, 1))
 
     # exploration strategy

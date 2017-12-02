@@ -183,6 +183,7 @@ class QN(object):
                 t += 1
                 last_eval += 1
                 last_record += 1
+                
                 if self.config.render_train: self.env.render()
 
                 action = self.train_step_pre(state, exp_schedule)
@@ -258,7 +259,7 @@ class QN(object):
         if exp_schedule is None:
             self.action = best_action
         else:
-            self.action           = exp_schedule.get_action(best_action, self.action_space)
+            self.action = exp_schedule.get_action(best_action, self.action_space)
 
         # store q values
         self.max_q_values.append(max(q_values))

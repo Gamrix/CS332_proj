@@ -118,7 +118,8 @@ class DQN(QN):
             # limit GPU memory usage.
             config = tf.ConfigProto()
             # config.gpu_options.allow_growth = True
-            config.gpu_options.per_process_gpu_memory_fraction = 0.15
+            config.gpu_options.per_process_gpu_memory_fraction = 0.2
+
             
             self.sess = tf.Session(config=config)
 
@@ -174,7 +175,7 @@ class DQN(QN):
 
 
 
-    def save(self):
+    def save(self, step=None):
         """
         Saves session
         """
@@ -182,7 +183,7 @@ class DQN(QN):
             if not os.path.exists(self.config.model_output):
                 os.makedirs(self.config.model_output)
 
-            self.saver.save(self.sess, self.config.model_output)
+            self.saver.save(self.sess, self.config.model_output, global_step=step)
 
 
     def get_best_action(self, state):

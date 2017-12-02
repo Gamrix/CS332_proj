@@ -13,6 +13,14 @@ from utils.preprocess import greyscale
 from utils.wrappers import PreproWrapper, MaxAndSkipEnv
 from  utils import actions
 
+from PIL import Image
+from io import BytesIO
+
+
+def display_img(data):
+    p_img = Image.fromarray(np.squeeze(data), 'L') # Because images are grayscale
+    p_img.show()
+
 
 class SelfPlayTrainer(object):
     def __init__(self, model_0, model_1, env, config):
@@ -66,7 +74,9 @@ class SelfPlayTrainer(object):
             new_state, reward, done, info = env.step(actions.FIRE)  # launch a new ball
             if done:
                 return None 
-            center = new_state[60:190, 20:140]
+            # center = new_state[60:190, 20:140]
+            center = new_state[10:70, 10:70]  # because it is reshaped to 80:80:3
+            # print(center.max())
             # print("call new state")
             #print(new_state.shape)
             if center.max() > 200:
@@ -75,7 +85,7 @@ class SelfPlayTrainer(object):
             
             
 
-    def evaluate(self, env=None, num_episodes=None):
+    def evaluate(self, env=None, num_episodes=None, exp_value=0):
         """
         Evaluation with same procedure as the training
         """
@@ -179,9 +189,14 @@ class SelfPlayTrainer(object):
                 action_1 = self.model_1.train_step_pre(state[:, ::-1], exp_schedule)
                 cur_action = actions.trans(action_0, action_1)
 
+                # display_img(state)
+
                 # perform action in env
                 new_state, reward, done, info =env.step(cur_action)
 
+                # print("Reward", reward)
+
+                # Problem 
                 loss_e0, grad_e0 = self.model_0.train_step_post(reward, done, t, lr_schedule, train_0)
                 self.model_1.train_step_post(-reward, done, t, lr_schedule, train_1)
                 state = new_state
@@ -231,6 +246,8 @@ class SelfPlayTrainer(object):
                 self.logger.info("Recording...")
                 last_record =0
                 self.record()
+                self.model_0.save(t) # save the models
+                self.model_1.save(t) # save the models
 
         # last words
         self.logger.info("- Training done.")
