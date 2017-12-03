@@ -326,6 +326,13 @@ class QN(object):
         if env is None:
             env = self.env
 
+        # keep the replay buffer alive
+        try:
+            r0 = self.replay_buffer
+            has_replay = True
+        except Exception:
+            has_replay = False
+
         # replay memory to play
         rewards = []
         self.train_init()
@@ -358,6 +365,9 @@ class QN(object):
         if num_episodes > 1:
             msg = "Average reward: {:04.2f} +/- {:04.2f}".format(avg_reward, sigma_reward)
             self.logger.info(msg)
+        
+        if has_replay:
+            self.replay_buffer = r0
 
         return avg_reward
 

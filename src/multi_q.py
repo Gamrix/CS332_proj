@@ -229,6 +229,16 @@ class SelfPlayTrainer(object):
 
         # replay memory to play
         rewards = []
+        
+        # keep the replay buffer alive
+        try:
+            r0 = self.model_0.replay_buffer
+            r1 = self.model_1.replay_buffer
+            has_replay = True
+        except Exception:
+            has_replay = False
+        
+
         self.model_0.train_init()
         self.model_1.train_init()
 
@@ -271,6 +281,10 @@ class SelfPlayTrainer(object):
         if num_episodes > 1:
             msg = "Average reward: {:04.2f} +/- {:04.2f}".format(avg_reward, sigma_reward)
             self.logger.info(msg)
+        
+        if has_replay:
+            self.model_0.replay_buffer = r0
+            self.model_1.replay_buffer = r1
 
         return avg_reward
 

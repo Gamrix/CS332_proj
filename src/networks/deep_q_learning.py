@@ -183,7 +183,7 @@ class DQN(QN):
             if not os.path.exists(self.config.model_output):
                 os.makedirs(self.config.model_output)
 
-            self.saver.save(self.sess, self.config.model_output, global_step=step)
+            self.saver.save(self.sess, self.config.model_output + "model", global_step=step)
 
 
     def get_best_action(self, state):

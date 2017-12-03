@@ -61,7 +61,7 @@ B_OFFSET = 20
 
 def trans(act_a, act_b):
     # B's actions are offset by 20 (ALE Config)
-    return trans_a_fire[act_a], trans_b[act_b]
+    return trans_a_fire[act_a], trans_a_fire[act_b] + 20
 
 def trans_single(raw_action):
     if raw_action == 0:
