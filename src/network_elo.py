@@ -119,7 +119,7 @@ def main():
             cur_model.num = m
             cur_model.elo = 1000
             cur_model.model_dir = model_dir
-            cur_model.load(model_dir.format(m))
+            cur_model.load(model_dir + "-" + str(m))
             models.append(cur_model)
         return models
 
@@ -145,25 +145,36 @@ def main():
         # 1 single play , 2 self-play @ 2.5M
         # 2 single play , 4 self-play ends
         # total 15 models
-        single_play = enumerate_models(FILL_IN)        
-        self_play0 = enumerate_models(FILL_IN)        
-        self_play1 = enumerate_models(FILL_IN)        
+
+        model_dir = "trained_models/{}/model.weights/"
+
+        single_play = enumerate_models(model_dir.format("02_2204/SingleADV"), [4011594, 4764484], "Single")        
+        self_play0A = enumerate_models(model_dir.format("02_2205/Adv_A"), [4006694, 4757864], "Adv0A")        
+        self_play0B = enumerate_models(model_dir.format("02_2205/Adv_B"), [4006694, 4757864], "Adv0B")        
+        self_play1A = enumerate_models(model_dir.format("02_2209/Adv_A"), [4005221, 4756947] , "Adv1A")        
+        self_play1B = enumerate_models(model_dir.format("02_2209/Adv_B"), [4005221, 4756947] , "Adv1B")        
+        self_play0 = self_play0A + self_play0B
+        self_play1 = self_play1A + self_play1B
 
         compatable_with(single_play, [self_play0, self_play1])
         compatable_with(self_play0, [single_play, self_play1])
         compatable_with(self_play1, [single_play, self_play0])
 
         nonlocal models = single_play + self_play0 + self_play1
-        nonlocal rounds = (15 * 25 / 2) / len(pairs)  + 1
+        nonlocal rounds = 5
 
     # now to actually score the games 
     results = []
 
-    for m0, m1 in pairs:
-        score_0, score_1 = evaluator.evaluate(m0, m1)
-        update_elo(m0, m1, 30, score_0, score_1)
-        csv_res.writerow([*model_info(m0), *model_info(m1), score_0, score_1])
-        results.append([m0, m1, score_0, score_1])
+    for i in range(rounds):
+        for m0, m1 in pairs:
+            score_0, score_1 = evaluator.evaluate(m0, m1)
+            update_elo(m0, m1, 30, score_0, score_1)
+            info = [*model_info(m0), *model_info(m1), score_0, score_1]
+            print(info)
+            print(m0.elo, m1.elo)
+            csv_res.writerow(info)
+            results.append([m0, m1, score_0, score_1])
     
     for i in range(10):
         for m0, m1, score_0, score_1 in random.shuffle(results)
