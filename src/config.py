@@ -27,7 +27,7 @@ class config():
     # nature paper hyper params
     nsteps_train       = 5000000
     batch_size         = 32
-    buffer_size        = 1000000
+    buffer_size        = 200000
     target_update_freq = 10000
     gamma              = 0.99
     learning_freq      = 4
