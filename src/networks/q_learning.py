@@ -28,6 +28,7 @@ class QN(object):
             logger: logger instance from logging module
         """
         # directory for training outputs
+        self.name = name
         self.action_space = 3
         if name == None:
             raise Exception("Must supply network name")

@@ -117,8 +117,8 @@ class DQN(QN):
             
             # limit GPU memory usage.
             config = tf.ConfigProto()
-            # config.gpu_options.allow_growth = True
-            config.gpu_options.per_process_gpu_memory_fraction = 0.2
+            config.gpu_options.allow_growth = True
+            # config.gpu_options.per_process_gpu_memory_fraction = 0.2
 
             
             self.sess = tf.Session(config=config)
@@ -134,7 +134,35 @@ class DQN(QN):
             self.sess.run(self.update_target_op)
 
             # for saving networks weights
+            self.saver = tf.train.Saver(max_to_keep=0)
+
+    def load(self, src):
+        """
+        load an existing network. Takes the place of the initialize step.
+        """
+        # create tf session
+        with self.tf_graph.as_default():
+            
+            # limit GPU memory usage.
+            config = tf.ConfigProto()
+            # config.gpu_options.allow_growth = True
+            config.gpu_options.per_process_gpu_memory_fraction = 0.8
+
+            
+            self.sess = tf.Session(config=config)
+
+            # tensorboard stuff
+            self.add_summary()
+
+            # initiliaze all variables
             self.saver = tf.train.Saver()
+            self.saver.restore(self.sess, src)
+
+            # synchronise q and target_q networks
+            self.sess.run(self.update_target_op)
+
+            # for saving networks weights
+
 
        
     def add_summary(self):
