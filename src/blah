@@ -1,0 +1,29 @@
+Single Network
+   371864   40.509    0.000   40.578    0.000 /home/jclow/repos/332_proj/hack_env/lib/python3.5/site-packages/atari_py-0.1.1-py3.5.egg/atari_py/ale_python_interface.py:137(act)
+Multi Network
+  2467870  232.816    0.000  233.110    0.000 /home/jclow/repos/332_proj/hack_env/lib/python3.5/site-packages/atari_py-0.1.1-py3.5.egg/atari_py/ale_python_interface.py:137(act)
+
+
+
+Single Network
+        1    0.042    0.042   83.308   83.308 /home/jclow/repos/332_proj/CS332_proj/src/networks/q_learning.py:159(train)
+        4    0.182    0.046   71.464   17.866 /home/jclow/repos/332_proj/CS332_proj/src/networks/q_learning.py:312(evaluate)
+311357/30967    0.159    0.000   57.863    0.002 /home/jclow/repos/332_proj/hack_env/lib/python3.5/site-packages/gym-0.9.3-py3.5.egg/gym/core.py:80(step)
+    30967    0.080    0.000   57.838    0.002 /home/jclow/repos/332_proj/CS332_proj/src/utils/wrappers.py:65(_step)
+    30967    0.317    0.000   53.332    0.002 /home/jclow/repos/332_proj/CS332_proj/src/utils/wrappers.py:20(_step)
+   123699    0.203    0.000   48.962    0.000 /home/jclow/repos/332_proj/hack_env/lib/python3.5/site-packages/gym-0.9.3-py3.5.egg/gym/wrappers/time_limit.py:34(_step)
+   123699    0.688    0.000   48.637    0.000 /home/jclow/repos/332_proj/hack_env/lib/python3.5/site-packages/gym-0.9.3-py3.5.egg/gym/envs/atari/atari_env.py:71(_step)
+   371864   40.509    0.000   40.578    0.000 /home/jclow/repos/332_proj/hack_env/lib/python3.5/site-packages/atari_py-0.1.1-py3.5.egg/atari_py/ale_python_interface.py:137(act)
+
+
+
+Multi Network
+        1    0.075    0.075  358.316  358.316 /home/jclow/repos/332_proj/CS332_proj/src/multi_q.py:87(train)
+2059079/205744    0.847    0.000  326.178    0.002 /home/jclow/repos/332_proj/hack_env/lib/python3.5/site-packages/gym-0.9.3-py3.5.egg/gym/core.py:80(step)
+   205744    0.414    0.000  326.038    0.002 /home/jclow/repos/332_proj/CS332_proj/src/utils/wrappers.py:65(_step)
+   205744    1.674    0.000  301.992    0.001 /home/jclow/repos/332_proj/CS332_proj/src/utils/wrappers.py:20(_step)
+     2639    1.062    0.000  292.825    0.111 /home/jclow/repos/332_proj/CS332_proj/src/multi_q.py:69(get_new_ball)
+   822824    1.054    0.000  279.667    0.000 /home/jclow/repos/332_proj/hack_env/lib/python3.5/site-packages/gym-0.9.3-py3.5.egg/gym/wrappers/time_limit.py:34(_step)
+   822824    3.814    0.000  277.947    0.000 /home/jclow/repos/332_proj/hack_env/lib/python3.5/site-packages/gym-0.9.3-py3.5.egg/gym/envs/atari/atari_env.py:71(_step)
+  2467870  232.816    0.000  233.110    0.000 /home/jclow/repos/332_proj/hack_env/lib/python3.5/site-packages/atari_py-0.1.1-py3.5.egg/atari_py/ale_python_interface.py:137(act)
+

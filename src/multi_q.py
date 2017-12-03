@@ -45,8 +45,9 @@ class SelfPlayTrainer(object):
         self.model_0.initialize()
         self.model_1.initialize()
 
-    def record(self):
+    def record(self, exp_schedule=None):
         self.logger.info("Recording training episode")
+        # evaluate with no exp
         env = gym.make(self.config.env_name)
         env = gym.wrappers.Monitor(env, self.config.record_path, video_callable=lambda x: True, resume=True)
         env = MaxAndSkipEnv(env, skip=self.config.skip_frame)
@@ -54,17 +55,25 @@ class SelfPlayTrainer(object):
                             overwrite_render=self.config.overwrite_render)
         self.evaluate(env, 1)
 
+        # evaluate with Exp
+        env = gym.make(self.config.env_name)
+        env = gym.wrappers.Monitor(env, self.config.record_path, video_callable=lambda x: True, resume=True)
+        env = MaxAndSkipEnv(env, skip=self.config.skip_frame)
+        env = PreproWrapper(env, prepro=greyscale, shape=(80, 80, 1),
+                            overwrite_render=self.config.overwrite_render)
+        self.evaluate(env, 1, exp_schedule=exp_schedule)
+
     def run_parallel_models(self, exp_schedule, lr_schedule, train_0, train_1):
         self.model_0.initialize()
         self.model_1.initialize()
 
         if True:
-            self.record()  # record one at beginning
+            self.record(exp_schedule)  # record one at beginning
 
         self.train(exp_schedule, lr_schedule, train_0, train_1)
 
         if True:
-            self.record()  # record one at end
+            self.record(exp_schedule)  # record one at end
     
     def get_new_ball(self, env):
         while True:
@@ -111,10 +120,13 @@ class SelfPlayTrainer(object):
         self.model_0.train_init()
         self.model_1.train_init()
 
+        # next_fire_B = False
+
         # interact with environment
         while t < self.config.nsteps_train:
             total_reward = 0
             state = self.env.reset()
+            # need_new_ball = False
             while True:
                 t += 1
                 last_eval += 1
@@ -124,6 +136,17 @@ class SelfPlayTrainer(object):
                 action_0 = self.model_0.train_step_pre(state, exp_schedule)
                 action_1 = self.model_1.train_step_pre(state[:, ::-1], exp_schedule)
                 cur_action = actions.trans(action_0, action_1)
+
+                # now calculate if we still need a ball
+                """
+                if need_new_ball:
+                    center = new_state[10:70, 10:70]  # because it is reshaped to 80:80:3
+                    if center.max() > 200:
+                        need_new_ball = False
+                    else:
+                        if next_fire_B
+                """
+
 
                 # display_img(state)
 
@@ -158,15 +181,12 @@ class SelfPlayTrainer(object):
                                                                                self.config.learning_start))
                     sys.stdout.flush()
 
+
                 # count reward
                 total_reward += reward
                 if done or t >= self.config.nsteps_train:
                     break
 
-                if reward !=0:
-                    state = self.get_new_ball(env)
-                    if state is None:
-                        break # alternative done state
 
             # updates to perform at the end of an episode
             rewards.append(total_reward)
@@ -181,7 +201,7 @@ class SelfPlayTrainer(object):
             if (t > self.config.learning_start) and self.config.record and (last_record > self.config.record_freq):
                 self.logger.info("Recording...")
                 last_record =0
-                self.record()
+                self.record(exp_schedule)
                 self.model_0.save(t) # save the models
                 self.model_1.save(t) # save the models
 
@@ -192,7 +212,7 @@ class SelfPlayTrainer(object):
         scores_eval += [self.evaluate()]
         export_plot(scores_eval, "Scores", self.config.plot_output)
 
-    def evaluate(self, env=None, num_episodes=None, exp_value=0):
+    def evaluate(self, env=None, num_episodes=None, exp_schedule=None):
         """
         Evaluation with same procedure as the training
         """
@@ -218,8 +238,8 @@ class SelfPlayTrainer(object):
             while True:
                 if self.config.render_test: env.render()
 
-                action_0 = self.model_0.train_step_pre(state)
-                action_1 = self.model_1.train_step_pre(state[:, ::-1])
+                action_0 = self.model_0.train_step_pre(state, exp_schedule)
+                action_1 = self.model_1.train_step_pre(state[:, ::-1], exp_schedule)
                 cur_action = actions.trans(action_0, action_1)
 
                 # perform action in env

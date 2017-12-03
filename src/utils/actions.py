@@ -32,6 +32,28 @@ def action_number(action_a, action_b):
         if a in action and b in action:
             return i
 """
+trans_a = [
+    0,  #NOOP
+    3,  # RIGHT - aka up
+    4,  # LEFT - aka down
+]
+
+trans_a_fire = [
+    1,  #NOOP
+    11,  # RIGHT - aka up
+    12,  # LEFT - aka down
+]
+
+trans_b = [
+    20,  #NOOP
+    23,  # RIGHT - aka up
+    24,  # LEFT - aka down
+]
+
+# need_ball_trans = [1, # FIRE
+#                   10, # UPFIRE
+#                    13, # DOWNFIRE
+#]
 
 
 FIRE = 1
@@ -39,10 +61,10 @@ B_OFFSET = 20
 
 def trans(act_a, act_b):
     # B's actions are offset by 20 (ALE Config)
-    return trans_single(act_a), trans_single(act_b) + 20
+    return trans_a_fire[act_a], trans_b[act_b]
 
 def trans_single(raw_action):
     if raw_action == 0:
         return 0
-    return raw_action + 1
+    return trans_a[raw_action] 
 

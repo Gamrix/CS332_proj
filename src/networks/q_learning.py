@@ -194,7 +194,9 @@ class QN(object):
                 # perform action in env
                 new_state, reward, done, info = env.step(cur_action)
                 self.rewards = reward
-                loss_eval, grad_eval = self.train_step_post(reward, done, t, lr_schedule, True)
+
+                self.replay_buffer.store_effect(self.idx, self.action, reward, done)
+                loss_eval, grad_eval = self.train_step(t, self.replay_buffer, lr_schedule.epsilon)
                 state = new_state
 
                 # logging stuff
