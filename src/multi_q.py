@@ -76,6 +76,7 @@ class SelfPlayTrainer(object):
             self.record(exp_schedule)  # record one at end
     
     def get_new_ball(self, env):
+        raise Exception("NOT CORRECT")
         while True:
             # we need to account for stochasticity of the env, 
             # and we need to account for pong not letting the user 
@@ -264,10 +265,6 @@ class SelfPlayTrainer(object):
                 if done:
                     break
 
-                if reward !=0:
-                    state = self.get_new_ball(env)
-                    if state is None:
-                        break # alternative done state
                 # store last state in buffer
                 state = new_state
 

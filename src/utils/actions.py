@@ -44,12 +44,6 @@ trans_a_fire = [
     12,  # LEFT - aka down
 ]
 
-trans_b = [
-    20,  #NOOP
-    23,  # RIGHT - aka up
-    24,  # LEFT - aka down
-]
-
 # need_ball_trans = [1, # FIRE
 #                   10, # UPFIRE
 #                    13, # DOWNFIRE
