@@ -217,11 +217,10 @@ def run_games():
     return results
     
 def calculate_elo(models, results, res_dir):
-    # some crap
-
-    for i in range(10):
+    k_schedule = [30, 30, 30, 10, 10, 10, 3, 3, 1, 1, .1, .1] # decay the K over time to smooth scores 
+    for k in k_schedule:
         for m0, m1, score_0, score_1 in random.sample(results, len(results)):
-            update_elo(m0, m1, 30, score_0, score_1)
+            update_elo(m0, m1, k, score_0, score_1)
     
     elo_res_f = open(res_dir + "elos.csv" , mode='w', newline="")
     csv_file = csv.writer(elo_res_f)
