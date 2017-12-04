@@ -40,6 +40,8 @@ class Evaluator(object):
 
         config.output_path = "./elo_scores/{}/".format(name)
         config.log_path = config.output_path + "log.log"
+        self.config = config
+        self.env = env
 
         if not os.path.exists(config.output_path):
             os.makedirs(config.output_path)
@@ -89,9 +91,9 @@ class Evaluator(object):
         return score_0, score_1
 
 def model_info(model):
-    return model.__class__.__name__, model.model_dir, model.num
+    return model.__class__.__name__, model.model_dir, model.num, model.name
 
-model_info_names = ["model", "model_dir", "num"]
+model_info_names = ["model", "model_dir", "num", "name"]
 
 def main():
     g_config = config.config()
@@ -109,13 +111,15 @@ def main():
     evaluator = Evaluator(env, config)
     csv_file = open(evaluator.config.output_path + "results.csv" , mode='w', newline="")
     csv_res = csv.writer(csv_file)
-    csv_res.writerow(["model_0", "model_dir_0", "num_0", "model_1", "model_dir_1", "num_1", "win_0", "win_1"]])
+    csv_res.writerow([*[m + "_0" for m in model_info_names],
+                      *[m + "_1" for m in model_info_names],
+                      "win_0", "win_1"])
 
 
     def enumerate_models(model_dir, model_nums, name):
         models = []
         for m in model_nums:
-            cur_model = dqns.AdvantageQN(env, g_config(), name=name)
+            cur_model = dqns.AdvantageQN(env, g_config, name=name)
             cur_model.num = m
             cur_model.elo = 1000
             cur_model.model_dir = model_dir
@@ -146,7 +150,7 @@ def main():
         # 2 single play , 4 self-play ends
         # total 15 models
 
-        model_dir = "trained_models/{}/model.weights/"
+        model_dir = "trained_models/{}/model.weights/model"
 
         single_play = enumerate_models(model_dir.format("02_2204/SingleADV"), [4011594, 4764484], "Single")        
         self_play0A = enumerate_models(model_dir.format("02_2205/Adv_A"), [4006694, 4757864], "Adv0A")        
@@ -160,8 +164,13 @@ def main():
         compatable_with(self_play0, [single_play, self_play1])
         compatable_with(self_play1, [single_play, self_play0])
 
-        nonlocal models = single_play + self_play0 + self_play1
-        nonlocal rounds = 5
+        nonlocal models
+        nonlocal rounds
+        models = single_play + self_play0 + self_play1
+        rounds = 5
+
+    # Which environment to run
+    first_run()
 
     # now to actually score the games 
     results = []
@@ -177,7 +186,7 @@ def main():
             results.append([m0, m1, score_0, score_1])
     
     for i in range(10):
-        for m0, m1, score_0, score_1 in random.shuffle(results)
+        for m0, m1, score_0, score_1 in random.shuffle(results):
             update_elo(m0, m1, 30, score_0, score_1)
     
     elo_res_f = open(evaluator.config.output_path + "elos.csv" , mode='w', newline="")
@@ -186,8 +195,11 @@ def main():
 
     # record the elo results
     elos = [[*model_info(m), m.elo] for m in models]
-    elos.sort(key=lambda x: x[3], x[2], reverse=True)
+    elos.sort(key=(lambda x: (x[3], x[2])), reverse=True)
     csv_res = csv.writer(csv_file)
     csv_res.writerows(elos)
 
             
+
+if __name__ == '__main__':
+    main()
