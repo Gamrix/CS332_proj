@@ -286,6 +286,136 @@ class SelfPlayTrainer(object):
         return avg_reward
 
 
+class FixedTargetTrainer(SelfPlayTrainer):
+
+    def record(self, exp_schedule=None):
+        self.logger.info("Recording training episode")
+        # evaluate with no exp
+        env = gym.make(self.config.env_name)
+        env = gym.wrappers.Monitor(env, self.config.record_path, video_callable=lambda x: True, resume=True)
+        env = MaxAndSkipEnv(env, skip=self.config.skip_frame)
+        env = PreproWrapper(env, prepro=greyscale, shape=(80, 80, 1),
+                            overwrite_render=self.config.overwrite_render)
+        self.evaluate(env, 1)
+
+        # evaluate with Exp
+        env = gym.make(self.config.env_name)
+        env = gym.wrappers.Monitor(env, self.config.record_path, video_callable=lambda x: True, resume=True)
+        env = MaxAndSkipEnv(env, skip=self.config.skip_frame)
+        env = PreproWrapper(env, prepro=greyscale, shape=(80, 80, 1),
+                            overwrite_render=self.config.overwrite_render)
+        self.evaluate(env, 1, exp_schedule=exp_schedule)
+
+    def train(self, exp_schedule, lr_schedule, exp_schedule1, env=None):
+        """
+        Performs training of Q only on agent 0
+
+        Args:
+            exp_schedule: Exploration instance s.t.
+                exp_schedule.get_action(best_action) returns an action
+            lr_schedule: Schedule for learning rate
+        """
+        if env is None:
+            env = self.env
+
+        # initialize replay buffer and variables
+        rewards = deque(maxlen=self.config.num_episodes_test)
+        rewardsB = deque(maxlen=self.config.num_episodes_test)
+        self.model_0.rewards = rewards
+        self.model_1.rewards = rewardsB
+        # self.init_averages()
+
+        t = last_eval = last_record = 0 # time control of nb of steps
+        scores_eval = [] # list of scores computed at iteration time
+        scores_eval += [self.evaluate()]
+
+        prog = Progbar(target=self.config.nsteps_train)
+        self.model_0.train_init()
+        self.model_1.train_init()
+
+        # next_fire_B = False
+
+        # interact with environment
+        while t < self.config.nsteps_train:
+            total_reward = 0
+            state = self.env.reset()
+            # need_new_ball = False
+            while True:
+                t += 1
+                last_eval += 1
+                last_record += 1
+                if self.config.render_train: env.render()
+
+                action_0 = self.model_0.train_step_pre(state, exp_schedule)
+                # if exp_schedule.epsilon == 1:
+                #     action_1 = exp_schedule.get_action(0,3)  # agent altogether
+                # else:
+                action_1 = self.model_1.train_step_pre(state[:, ::-1], exp_schedule1)
+                cur_action = actions.trans(action_0, action_1)
+
+
+                # perform action in env
+                new_state, reward, done, info =env.step(cur_action)
+
+                # print("Reward", reward)
+
+                # Problem 
+                loss_e0, grad_e0 = self.model_0.train_step_post(reward, done, t, lr_schedule, True)
+                self.model_1.train_step_post(-reward, done, t, lr_schedule, False)
+                state = new_state
+
+                # logging stuff
+                if ((t > self.config.learning_start) and (t % self.config.log_freq == 0) and
+                        (t % self.config.learning_freq == 0)):
+                    # self.update_averages(rewards, max_q_values, q_values, scores_eval)
+                    exp_schedule.update(t)
+                    lr_schedule.update(t)
+                    if len(rewards) > 0:
+                        prog.update(t + 1, exact=[("Loss", loss_e0),
+                                                  ("Avg R", np.mean(rewards)),
+                                                  ("Max R", np.max(rewards)),
+                                                  ("Min R", np.min(rewards)),
+                                                  ("eps", exp_schedule.epsilon),
+                                                  ("Grads", grad_e0),
+                                                  ("Max Q", np.mean(self.model_0.max_q_values)),
+                                                  ("lr", lr_schedule.epsilon)])
+
+                elif (t < self.config.learning_start) and (t % self.config.log_freq == 0):
+                    sys.stdout.write("\rPopulating the memory {}/{}...".format(t,
+                                                                               self.config.learning_start))
+                    sys.stdout.flush()
+
+
+                # count reward
+                total_reward += reward
+                if done or t >= self.config.nsteps_train:
+                    break
+
+
+            # updates to perform at the end of an episode
+            rewards.append(total_reward)
+            rewardsB.append(-total_reward)
+
+            if (t > self.config.learning_start) and (last_eval > self.config.eval_freq):
+                # evaluate our policy
+                last_eval = 0
+                print("")
+                scores_eval += [self.evaluate()]
+
+            if (t > self.config.learning_start) and self.config.record and (last_record > self.config.record_freq):
+                self.logger.info("Recording...")
+                last_record =0
+                self.record(exp_schedule)
+                self.model_0.save(t) # save the models
+                self.model_1.save(t) # save the models
+
+        # last words
+        self.logger.info("- Training done.")
+        self.model_0.save() # save the models
+        self.model_1.save() # save the models
+        scores_eval += [self.evaluate()]
+        export_plot(scores_eval, "Scores", self.config.plot_output)
+
 def main():
     import config
     # make env
@@ -307,11 +437,85 @@ def main():
                                   g_config.lr_nsteps)
 
     # train model
-    model_0 = dqns.AdvantageQN(env, config.config(), name="Adv_A")
-    model_1 = dqns.AdvantageQN(env, config.config(), name="Adv_B")
+    # model_0 = dqns.AdvantageQN(env, config.config(), name="Adv_A")
+    # model_1 = dqns.AdvantageQN(env, config.config(), name="Adv_B")
+    model_0 = dqns.NatureQN(env, config.config(), name="Nature_A")
+    model_1 = dqns.NatureQN(env, config.config(), name="Nature_B")
+    trainer = SelfPlayTrainer(model_0, model_1, env, g_config)
+    trainer.run_parallel_models(exp_schedule, lr_schedule, True, True)
+
+def single_train():
+    import config
+    # make env
+    g_config = config.config()
+    g_config.env_name = "Pong2p-v0"
+    env = gym.make(g_config.env_name)
+    env = MaxAndSkipEnv(env, skip=g_config.skip_frame)
+    env = PreproWrapper(env, prepro=greyscale, shape=(80, 80, 1),
+                        overwrite_render=g_config.overwrite_render)
+
+    # exploration strategy
+    # you may want to modify this schedule
+    exp_schedule = LinearExploration(env, g_config.eps_begin,
+                                     g_config.eps_end, g_config.eps_nsteps)
+
+    # you may want to modify this schedule
+    # learning rate schedule
+    lr_schedule  = LinearSchedule(g_config.lr_begin, g_config.lr_end,
+                                  g_config.lr_nsteps)
+
+    # train model
+    model_0 = dqns.AdvantageQN(env, config.config(), name="Adv_Single")
+
+    """
+    model_1 = dqns.AdvantageQN(env, config.config(), name="Adv_FixedOpp")
+    exp_schedule1 = LinearExploration(env, 0.00001,
+                                     0.00000001, g_config.eps_nsteps)
+    """
+    model_1 = dqns.AdvantageQN(env, config.config(), name="Random")
+    exp_schedule1 = LinearExploration(env, 1,
+                                     1, g_config.eps_nsteps)
+    
+
+    model_0.initialize()
+    model_1.load("trained_models/03_1521/Adv_A/model.weights/model-250244")
+
+    trainer = FixedTargetTrainer(model_0, model_1, env, g_config)
+
+    trainer.record(exp_schedule)  # record one at beginning
+    trainer.train(exp_schedule, lr_schedule, exp_schedule1)
+    trainer.record(exp_schedule)  # record one at end
+
+
+def main():
+    import config
+    # make env
+    g_config = config.config()
+    g_config.env_name = "Pong2p-v0"
+    env = gym.make(g_config.env_name)
+    env = MaxAndSkipEnv(env, skip=g_config.skip_frame)
+    env = PreproWrapper(env, prepro=greyscale, shape=(80, 80, 1),
+                        overwrite_render=g_config.overwrite_render)
+
+    # exploration strategy
+    # you may want to modify this schedule
+    exp_schedule = LinearExploration(env, g_config.eps_begin,
+                                     g_config.eps_end, g_config.eps_nsteps)
+
+    # you may want to modify this schedule
+    # learning rate schedule
+    lr_schedule  = LinearSchedule(g_config.lr_begin, g_config.lr_end,
+                                  g_config.lr_nsteps)
+
+    # train model
+    # model_0 = dqns.AdvantageQN(env, config.config(), name="Adv_A")
+    # model_1 = dqns.AdvantageQN(env, config.config(), name="Adv_B")
+    model_0 = dqns.NatureQN(env, config.config(), name="Nature_A")
+    model_1 = dqns.NatureQN(env, config.config(), name="Nature_B")
     trainer = SelfPlayTrainer(model_0, model_1, env, g_config)
     trainer.run_parallel_models(exp_schedule, lr_schedule, True, True)
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    single_train()

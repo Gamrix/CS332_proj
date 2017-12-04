@@ -13,7 +13,7 @@ from utils.preprocess import greyscale
 from utils.wrappers import PreproWrapper, MaxAndSkipEnv
 from  utils import actions
 
-from networks.dqns import AdvantageQN
+from networks.dqns import AdvantageQN, NatureQN
 
 def main():
     import config
@@ -36,7 +36,8 @@ def main():
             g_config.lr_nsteps)
 
     # train model
-    model = AdvantageQN(env, config.config(), name="SingleADV")
+    # model = AdvantageQN(env, config.config(), name="SingleADV")
+    model = NatureQN(env, config.config(), name="SingleNatureQN")
     model.run(exp_schedule, lr_schedule)
 
 if __name__ == '__main__':

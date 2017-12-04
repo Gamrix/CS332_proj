@@ -65,6 +65,36 @@ class AdvantageQN(Linear):
                 out = tf.reshape(value, (-1,1)) + norm_advantage
             return out
 
+class NatureQN(Linear):
+    """
+    Implementing DeepMind's Nature paper. Here are the relevant urls.
+    https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf
+    https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf
+    """
+    def get_q_values_op(self, state, scope, reuse=False):
+        """
+        Returns Q values for all actions
+
+        Args:
+            state: (tf tensor) 
+                shape = (batch_size, img height, img width, nchannels)
+            scope: (string) scope name, that specifies if target network or not
+            reuse: (bool) reuse of variables in the scope
+
+        Returns:
+            out: (tf tensor) of shape = (batch_size, num_actions)
+        """
+        out = state
+        with tf.variable_scope(scope, reuse):
+            hid1 = layers.conv2d(state, num_outputs=32, kernel_size=8, stride=4, padding="SAME", scope="c1")
+            hid2 = layers.conv2d(hid1, num_outputs=64, kernel_size=4, stride=2, padding="SAME", scope="c2")
+            hid3 = layers.conv2d(hid2, num_outputs=64, kernel_size=3, stride=1, padding="SAME", scope="c3")
+            hid3_flat = layers.flatten(hid3)
+
+            hid_fc = layers.fully_connected(hid3_flat, num_outputs=512, scope="FC1")
+            out = layers.fully_connected(hid_fc, self.action_space, scope="FC2", activation_fn=None)
+
+        return out
 
 """
 Use a different architecture for the Atari game. Please report the final result.
