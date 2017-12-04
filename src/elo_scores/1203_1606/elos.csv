@@ -1,0 +1,11 @@
+model,model_dir,num,name,elo
+AdvantageQN,trained_models/02_2205/Adv_A/model.weights/model,4757864,Adv0A,1075.1311065876132
+AdvantageQN,trained_models/02_2209/Adv_A/model.weights/model,4756947,Adv1A,1073.5626039674767
+AdvantageQN,trained_models/02_2209/Adv_A/model.weights/model,4005221,Adv1A,1055.3111909149727
+AdvantageQN,trained_models/02_2205/Adv_A/model.weights/model,4006694,Adv0A,1054.3249652165894
+AdvantageQN,trained_models/02_2209/Adv_B/model.weights/model,4005221,Adv1B,1052.8811981323754
+AdvantageQN,trained_models/02_2209/Adv_B/model.weights/model,4756947,Adv1B,1050.07471575101
+AdvantageQN,trained_models/02_2205/Adv_B/model.weights/model,4757864,Adv0B,1035.1576237387997
+AdvantageQN,trained_models/02_2205/Adv_B/model.weights/model,4006694,Adv0B,958.5075430063745
+AdvantageQN,trained_models/02_2204/SingleADV/model.weights/model,4764484,Single,824.3846937948902
+AdvantageQN,trained_models/02_2204/SingleADV/model.weights/model,4011594,Single,820.664358889895

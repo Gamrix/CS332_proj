@@ -89,13 +89,43 @@ class Evaluator(object):
             # store last state in buffer
             state = new_state
         return score_0, score_1
+class ThinModel:
+    def __init__(self, model_class, model_dir, num, name):
+        self.model_class = model_class
+        self.model_dir = model_dir
+        self.num = int(num)
+        self.name = name
+        self.elo = 1000
 
 def model_info(model):
-    return model.__class__.__name__, model.model_dir, model.num, model.name
+    try :
+        m_class = model.model_class
+    except Exception:
+        m_class = model.__class__.__name__
+    return m_class, model.model_dir, model.num, model.name
 
 model_info_names = ["model", "model_dir", "num", "name"]
 
-def main():
+def load_games_res(game_results):
+    loaded_results = []
+    model_dict= {}
+    def find_model(args):
+        model_tuple = tuple(args)
+        print(model_tuple)
+        if model_tuple not in model_dict:
+            model_dict[model_tuple] = ThinModel(*model_tuple)
+        return model_dict[model_tuple]
+
+    for res in game_results:
+        m0 = find_model(res[:4])
+        m1 = find_model(res[4:8])
+        loaded_results.append([m0, m1, int(res[8]), int(res[9])])
+    return list(model_dict.values()), loaded_results
+
+    # load up the results
+
+
+def run_games():
     g_config = config.config()
     g_config.env_name = "Pong2p-v0"
     env = gym.make(g_config.env_name)
@@ -184,22 +214,29 @@ def main():
             print(m0.elo, m1.elo)
             csv_res.writerow(info)
             results.append([m0, m1, score_0, score_1])
+    return results
     
+def calculate_elo(models, results, res_dir):
+    # some crap
+
     for i in range(10):
-        for m0, m1, score_0, score_1 in random.shuffle(results):
+        for m0, m1, score_0, score_1 in random.sample(results, len(results)):
             update_elo(m0, m1, 30, score_0, score_1)
     
-    elo_res_f = open(evaluator.config.output_path + "elos.csv" , mode='w', newline="")
+    elo_res_f = open(res_dir + "elos.csv" , mode='w', newline="")
     csv_file = csv.writer(elo_res_f)
     csv_file.writerow([*model_info_names, "elo"])
 
     # record the elo results
     elos = [[*model_info(m), m.elo] for m in models]
-    elos.sort(key=(lambda x: (x[3], x[2])), reverse=True)
-    csv_res = csv.writer(csv_file)
-    csv_res.writerows(elos)
+    elos.sort(key=(lambda x: (x[4], x[2])), reverse=True)
+    csv_file.writerows(elos)
 
-            
 
 if __name__ == '__main__':
-    main()
+    r_dir = "elo_scores/1203_1606/"
+    scores_f = open(r_dir + "results.csv", newline='')
+    c_reader = csv.reader(scores_f)
+    model_data = list(c_reader)[1:]
+    models, results = load_games_res(model_data)
+    calculate_elo(models, results, r_dir)
