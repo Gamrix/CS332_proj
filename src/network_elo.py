@@ -39,6 +39,7 @@ class Evaluator(object):
         name =  time.strftime("%m%d_%H%M")
 
         config.output_path = "./elo_scores/{}/".format(name)
+        print("Outputting to ", config.output_path)
         config.log_path = config.output_path + "log.log"
         self.config = config
         self.env = env
@@ -254,8 +255,8 @@ def run_games():
         single_play =  enumerate_models(model_dir.format("03_1501/SingleADV"), [250272, 1001582, 2506140, 4763791], "Single")        
         single_play += enumerate_models(model_dir.format("02_2204/SingleADV"), [4764484], "Single")        
 
-        single_play1 = enumerate_models(model_dir.format("03_2349/SingleNatureQN"), [250068, 1002011, 2505567, 4764637], "SingleDQN", dqns.NatureQN)        
-        single_play2 = enumerate_models(model_dir.format("04_0232/SingleNatureQN"), [250360, 1001844, 2508136, 4766454], "SingleDQN", dqns.NatureQN)        
+        single_play1 = enumerate_models(model_dir.format("03_2349/SingleNatureQN"), [250068, 1002011, 2505567, 4764637], "SingleDQN0", dqns.NatureQN)        
+        single_play2 = enumerate_models(model_dir.format("04_0232/SingleNatureQN"), [250360, 1001844, 2508136, 4766454], "SingleDQN1", dqns.NatureQN)        
 
 
         self_play0A = enumerate_models(model_dir.format("02_2205/Adv_A"), [4757864], "Adv0A")        
@@ -312,6 +313,7 @@ def run_games():
             print(m0.elo, m1.elo)
             csv_res.writerow(info)
             results.append([m0, m1, score_0, score_1])
+    csv_res.close()
     return  results, evaluator.config.output_path
     
 def calculate_elo(models, results, res_dir):
@@ -328,6 +330,7 @@ def calculate_elo(models, results, res_dir):
     elos = [[*model_info(m), m.elo] for m in models]
     elos.sort(key=(lambda x: (x[4], x[2])), reverse=True)
     csv_file.writerows(elos)
+    elo_res_f.close()
 
 
 def load_data(res_dir):
@@ -343,10 +346,11 @@ def load_and_run_first_res():
 
 if __name__ == '__main__':
     # load_and_run_first_res()
-    results, path = run_games()
+    # results, path = run_games()
+    path = "elo_scores/1204_2135/"
     old_r_dir = "elo_scores/1203_1606/"
     first_res = load_data(old_r_dir)
-    second_res = load_data("elo_scores/1204/1220")
+    second_res = load_data("elo_scores/1204_1220/")
     third_res = load_data(path)
     models, results = load_games_res(first_res + second_res + third_res)
     calculate_elo(models, results, path)
