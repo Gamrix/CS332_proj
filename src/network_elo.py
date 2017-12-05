@@ -95,7 +95,7 @@ class ThinModel:
         self.model_dir = model_dir
         self.num = int(num)
         self.name = name
-        self.elo = 1000
+        self.elo = 0
 
 def model_info(model):
     try :
@@ -146,16 +146,16 @@ def run_games():
                       "win_0", "win_1"])
 
 
-    def enumerate_models(model_dir, model_nums, name):
+    def enumerate_models(model_dir, model_nums, name, m_class=dqns.AdvantageQN):
         models = []
         for m in model_nums:
-            cur_model = dqns.AdvantageQN(env, g_config, name=name)
+            cur_model = m_class(env, g_config, name=name)
             cur_model.num = m
-            cur_model.elo = 1000
+            cur_model.elo = 0
             cur_model.model_dir = model_dir
             cur_model.load(model_dir + "-" + str(m))
             models.append(cur_model)
-        return models
+        return tuple(models)
 
     pairs = []
 
@@ -198,9 +198,107 @@ def run_games():
         nonlocal rounds
         models = single_play + self_play0 + self_play1
         rounds = 5
+    
+    def second_run():
+        model_dir = "trained_models/{}/model.weights/model"
+
+        single_play =  enumerate_models(model_dir.format("03_1501/SingleADV"), [250272, 1001582, 2506140, 4763791], "Single")        
+        single_play += enumerate_models(model_dir.format("02_2204/SingleADV"), [4764484], "Single")        
+
+        single_play1 = enumerate_models(model_dir.format("03_2349/SingleNatureQN"), [250068, 1002011, 2505567, 4764637], "SingleDQN", dqns.NatureQN)        
+        single_play2 = enumerate_models(model_dir.format("04_0232/SingleNatureQN"), [250360, 1001844, 2508136, 4766454], "SingleDQN", dqns.NatureQN)        
+
+
+        self_play0A = enumerate_models(model_dir.format("02_2205/Adv_A"), [4757864], "Adv0A")        
+        self_play0B = enumerate_models(model_dir.format("02_2205/Adv_B"), [4757864], "Adv0B")        
+        self_play0 = self_play0A + self_play0B
+
+        self_play1A = enumerate_models(model_dir.format("02_2209/Adv_A"), [4756947] , "Adv1A")        
+        self_play1B = enumerate_models(model_dir.format("02_2209/Adv_B"), [4756947] , "Adv1B")        
+        self_play1 = self_play1A + self_play1B
+
+        self_play2A = enumerate_models(model_dir.format("03_1520/Adv_A"), [250020, 1001335, 2505766] , "Adv2A")        
+        self_play2B = enumerate_models(model_dir.format("03_1520/Adv_B"), [250020, 1001335, 2505766] , "Adv2B")        
+        self_play2 = self_play2A + self_play2B
+
+        self_play3A = enumerate_models(model_dir.format("03_1521/Adv_A"), [250244, 1002194, 2505204] , "Adv3A")        
+        self_play3B = enumerate_models(model_dir.format("03_1521/Adv_B"), [250244, 1002194, 2505204] , "Adv3B")        
+        self_play3 = self_play3A + self_play3B
+
+        self_play0A = enumerate_models(model_dir.format("03_2357/Nature_A"), [250101, 1001653, 2503025, 4758399], "Nature4A", dqns.NatureQN)        
+        self_play0B = enumerate_models(model_dir.format("03_2357/Nature_B"), [250101, 1001653, 2503025, 4758399], "Nature4B", dqns.NatureQN)        
+        self_play4 = self_play4A + self_play4B
+
+        self_play5 = enumerate_models(model_dir.format("04_1006/Adv_Single"), [250047, 1000867, 2501982, 4753393] , "ADV_vs_Random")        
+        self_play6 = enumerate_models(model_dir.format("04_1009/Adv_Single"), [250016, 1000902, 2501784, 4753522] , "ADV_vs_250k")        
+
+
+        all_sets = {single_play, single_play1, single_play2, self_play0, self_play1, self_play2, self_play3}
+
+        compatable_with(single_play, all_sets - {single_play, self_play0, self_play1})
+        compatable_with(self_play0, all_sets - {single_play, self_play0, self_play1})
+        compatable_with(self_play1, all_sets - {single_play, self_play0, self_play1})
+        compatable_with(single_play1, all_sets - {single_play1})
+        compatable_with(single_play2, all_sets - {single_play2})
+        compatable_with(self_play2, all_sets - {self_play2})
+        compatable_with(self_play3, all_sets - {self_play3})
+
+        nonlocal models
+        nonlocal rounds
+        models = list(itertools.chain.from_iterable(all_sets))
+        rounds = 1
+
+    def third_run():
+        model_dir = "trained_models/{}/model.weights/model"
+
+        single_play =  enumerate_models(model_dir.format("03_1501/SingleADV"), [250272, 1001582, 2506140, 4763791], "Single")        
+        single_play += enumerate_models(model_dir.format("02_2204/SingleADV"), [4764484], "Single")        
+
+        single_play1 = enumerate_models(model_dir.format("03_2349/SingleNatureQN"), [250068, 1002011, 2505567, 4764637], "SingleDQN", dqns.NatureQN)        
+        single_play2 = enumerate_models(model_dir.format("04_0232/SingleNatureQN"), [250360, 1001844, 2508136, 4766454], "SingleDQN", dqns.NatureQN)        
+
+
+        self_play0A = enumerate_models(model_dir.format("02_2205/Adv_A"), [4757864], "Adv0A")        
+        self_play0B = enumerate_models(model_dir.format("02_2205/Adv_B"), [4757864], "Adv0B")        
+        self_play0 = self_play0A + self_play0B
+
+        self_play1A = enumerate_models(model_dir.format("02_2209/Adv_A"), [4756947] , "Adv1A")        
+        self_play1B = enumerate_models(model_dir.format("02_2209/Adv_B"), [4756947] , "Adv1B")        
+        self_play1 = self_play1A + self_play1B
+
+        self_play2A = enumerate_models(model_dir.format("03_1520/Adv_A"), [250020, 1001335, 2505766] , "Adv2A")        
+        self_play2B = enumerate_models(model_dir.format("03_1520/Adv_B"), [250020, 1001335, 2505766] , "Adv2B")        
+        self_play2 = self_play2A + self_play2B
+
+        self_play3A = enumerate_models(model_dir.format("03_1521/Adv_A"), [250244, 1002194, 2505204] , "Adv3A")        
+        self_play3B = enumerate_models(model_dir.format("03_1521/Adv_B"), [250244, 1002194, 2505204] , "Adv3B")        
+        self_play3 = self_play3A + self_play3B
+
+        self_play4A = enumerate_models(model_dir.format("03_2357/Nature_A"), [250101, 1001653, 2503205, 4758399], "Nature4A", dqns.NatureQN)        
+        self_play4B = enumerate_models(model_dir.format("03_2357/Nature_B"), [250101, 1001653, 2503205, 4758399], "Nature4B", dqns.NatureQN)        
+        self_play4 = self_play4A + self_play4B
+
+        self_play5 = enumerate_models(model_dir.format("04_1006/Adv_Single"), [250047, 1000867, 2501982, 4753393] , "ADV_vs_Random")        
+        self_play6 = enumerate_models(model_dir.format("04_1109/Adv_Single"), [250016, 1000902, 2501784, 4753522] , "ADV_vs_250k")        
+
+
+        all_sets = {single_play, single_play1, single_play2, 
+                    self_play0, self_play1, self_play2, self_play3,
+                    self_play4, self_play5, self_play6}
+        new_sets = {self_play4, self_play5, self_play6}
+
+        for s in all_sets - new_sets:
+            compatable_with(s, new_sets)
+        for s in new_sets:
+            compatable_with(s, all_sets - {s})
+
+        nonlocal models
+        nonlocal rounds
+        models = list(itertools.chain.from_iterable(all_sets))
+        rounds = 1
 
     # Which environment to run
-    first_run()
+    third_run()
 
     # now to actually score the games 
     results = []
@@ -214,7 +312,7 @@ def run_games():
             print(m0.elo, m1.elo)
             csv_res.writerow(info)
             results.append([m0, m1, score_0, score_1])
-    return results
+    return  results, evaluator.config.output_path
     
 def calculate_elo(models, results, res_dir):
     k_schedule = [30, 30, 30, 10, 10, 10, 3, 3, 1, 1, .1, .1] # decay the K over time to smooth scores 
@@ -232,10 +330,26 @@ def calculate_elo(models, results, res_dir):
     csv_file.writerows(elos)
 
 
-if __name__ == '__main__':
+def load_data(res_dir):
+    with open(res_dir + "results.csv", newline='') as scores_f:
+        c_reader = csv.reader(scores_f)
+        return list(c_reader)[1:]
+
+def load_and_run_first_res():
     r_dir = "elo_scores/1203_1606/"
-    scores_f = open(r_dir + "results.csv", newline='')
-    c_reader = csv.reader(scores_f)
-    model_data = list(c_reader)[1:]
+    model_data = load_data(r_dir)
     models, results = load_games_res(model_data)
     calculate_elo(models, results, r_dir)
+
+if __name__ == '__main__':
+    # load_and_run_first_res()
+    results, path = run_games()
+    old_r_dir = "elo_scores/1203_1606/"
+    first_res = load_data(old_r_dir)
+    second_res = load_data("elo_scores/1204/1220")
+    third_res = load_data(path)
+    models, results = load_games_res(first_res + second_res + third_res)
+    calculate_elo(models, results, path)
+
+
+

@@ -467,7 +467,6 @@ def single_train():
     # train model
     model_0 = dqns.AdvantageQN(env, config.config(), name="Adv_Single")
 
-    """
     model_1 = dqns.AdvantageQN(env, config.config(), name="Adv_FixedOpp")
     exp_schedule1 = LinearExploration(env, 0.00001,
                                      0.00000001, g_config.eps_nsteps)
@@ -475,6 +474,7 @@ def single_train():
     model_1 = dqns.AdvantageQN(env, config.config(), name="Random")
     exp_schedule1 = LinearExploration(env, 1,
                                      1, g_config.eps_nsteps)
+    """
     
 
     model_0.initialize()
